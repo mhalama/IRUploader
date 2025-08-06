@@ -1,0 +1,17 @@
+CREATE TABLE firmware(
+    id          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name        TEXT,
+    author      TEXT,
+    version     TEXT,
+    hex         TEXT NOT NULL,
+    ts          TEXT
+);
+
+getFirmwares:
+    SELECT * FROM firmware ORDER BY name;
+
+upsertFirmware:
+    INSERT OR REPLACE INTO firmware (name, author, version, hex, ts) VALUES (:name, :author, :version, :hex, strftime('%Y-%m-%d %H:%M:%S', 'now'));
+
+deleteFirmware:
+    DELETE FROM firmware WHERE id=:id;

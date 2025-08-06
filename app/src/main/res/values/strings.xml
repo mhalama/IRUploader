@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">IRUploader</string>
+    <string name="share_file">Share file using</string>
+    <string name="no_firmware_found">No firmware found.</string>
+    <string name="load_firmware_to_show">Upload some firmware to display.</string>
+    <string name="firmware_list">Firmware upload list</string>
+    <string name="load_firmware">Upload firmware</string>
+    <string name="delete_firmware">Delete firmware</string>
+    <string name="server_listening_on_port">Server is listening on port %1$d</string>
+    <string name="address">Address: %1$s</string>
+    <string name="loading_firmware">Uploading firmware...</string>
+    <string name="get_bootloader">Get bootloader</string>
+    <string name="server_not_running">Server is not running</string>
+    <string name="app_desc_1">The application creates a server on port 12345 when started.</string>
+    <string name="app_desc_2">Anything you send to this port will be transmitted via the IR transmitter using the bootloader protocol.</string>
+    <string name="app_desc_3">This allows you to program your ATTINY device using a mobile phone.</string>
+    <string name="server_state">Server information</string>
+    <string name="unknown">unknown</string>
+    <string name="bottom_nav_main">Firmware</string>
+    <string name="bottom_nav_messages">Messages</string>
+</resources>

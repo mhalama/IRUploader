@@ -1,0 +1,74 @@
+package cz.zorn.iruploader
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import cz.zorn.iruploader.ServerState.*
+import cz.zorn.iruploader.db.Firmware
+import cz.zorn.iruploader.db.Message
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+sealed class UploadingState {
+    data class UPLOADING(val firmware: Firmware, val progress: Int) : UploadingState()
+    object IDLE : UploadingState()
+}
+
+sealed class ServerState {
+    data class READY(val ip: String) : ServerState()
+    object STOPPED : ServerState()
+}
+
+class MainActivityVM(
+    private val socketServer: SocketServer,
+    private val uploaderRepository: UploaderRepository
+) : ViewModel() {
+    private val _serverState = MutableStateFlow<ServerState>(STOPPED)
+    val serverState = _serverState.asStateFlow()
+
+    val uploadingState = MutableStateFlow<UploadingState>(UploadingState.IDLE)
+
+    val firmwares = uploaderRepository.getFirmwares()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val messages = uploaderRepository.getMessages()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun sendFirmware(fw: Firmware) {
+        viewModelScope.launch {
+            uploaderRepository.sendFlash(fw).collect { progress ->
+                uploadingState.value = UploadingState.UPLOADING(fw, progress.pct)
+            }
+            uploadingState.value = UploadingState.IDLE
+        }
+    }
+
+    fun deleteFirmware(fw: Firmware) {
+        viewModelScope.launch { uploaderRepository.deleteFirmware(fw) }
+    }
+
+    fun sendMessage(content: String) {
+        viewModelScope.launch { uploaderRepository.sendMessage(Message(content, null)) }
+    }
+
+    fun resendMessage(message: Message) {
+        viewModelScope.launch { uploaderRepository.sendMessage(message) }
+    }
+
+    fun deleteMessage(message: Message) {
+        viewModelScope.launch { uploaderRepository.deleteMessage(message) }
+    }
+
+    init {
+        viewModelScope.launch {
+            socketServer.state.collect {
+                when (it) {
+                    SocketServerState.Stopped -> _serverState.value = STOPPED
+                    is SocketServerState.Started -> _serverState.value = READY(it.ip)
+                    is SocketServerState.Uploaded -> sendFirmware(it.firmware)
+                }
+            }
+        }
+    }
+}

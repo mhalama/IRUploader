@@ -1,0 +1,13 @@
+CREATE TABLE message(
+    content     TEXT PRIMARY KEY NOT NULL,
+    ts          TEXT
+);
+
+getMessages:
+    SELECT * FROM message ORDER BY content;
+
+upsertMessage:
+    INSERT OR REPLACE INTO message (content, ts) VALUES (:content, strftime('%Y-%m-%d %H:%M:%S', 'now'));
+
+deleteMessage:
+    DELETE FROM message WHERE content=:content;

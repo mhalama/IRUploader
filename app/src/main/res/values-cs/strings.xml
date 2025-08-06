@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">IRUploader</string>
+    <string name="share_file">Sdílet soubor pomocí</string>
+    <string name="no_firmware_found">Žádný firmware nebyl nalezen.</string>
+    <string name="load_firmware_to_show">Nahrajte nějaký firmware pro zobrazení.</string>
+    <string name="firmware_list">Seznam firmware k nahrání</string>
+    <string name="load_firmware">Nahrát firmware</string>
+    <string name="delete_firmware">Smazat firmware</string>
+    <string name="server_listening_on_port">Server poslouchá na portu %1$d</string>
+    <string name="address">Adresa: %1$s</string>
+    <string name="loading_firmware">Nahrávám firmware...</string>
+    <string name="get_bootloader">Ziskat bootloader</string>
+    <string name="server_not_running">Server neběží</string>
+    <string name="app_desc_1">Aplikace po spuštění vytvoří server na portu 12345.</string>
+    <string name="app_desc_2">Cokoliv odešlete na tento port, bude přeneseno přes IR vysílač pomocí protokolu pro bootloader.</string>
+    <string name="app_desc_3">Můžete tak programovat své ATTINY zařízení s využitím mobilního telefonu.</string>
+    <string name="server_state">Informace o serveru</string>
+    <string name="unknown">neznámá</string>
+    <string name="bottom_nav_main">Firmware</string>
+    <string name="bottom_nav_messages">Zprávy</string>
+</resources>
