@@ -16,8 +16,8 @@ android {
         applicationId = "cz.zorn.iruploader"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.04"
+        versionCode = 5
+        versionName = "1.05"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -74,7 +74,7 @@ dependencies {
     implementation(libs.androidx.material3.adaptive.navigation3)
     implementation(libs.kotlinx.serialization.core)
 
-    implementation("com.github.jeziellago:compose-markdown:+")
+    implementation("com.github.jeziellago:compose-markdown:0.5.7")
 
     implementation("app.cash.sqldelight:android-driver:2.1.0")
     implementation("app.cash.sqldelight:coroutines-extensions:2.1.0")
