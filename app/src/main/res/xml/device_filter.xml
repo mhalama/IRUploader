@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ESP32-C3 -->
+    <usb-device
+        product-id="4097"
+        vendor-id="12346" />
+
+    <!-- IR Blasters -->
+    <usb-device
+        product-id="682"
+        vendor-id="1116" />
+    <usb-device
+        product-id="330"
+        vendor-id="1116" />
+    <usb-device
+        product-id="308"
+        vendor-id="1116" />
+    <usb-device
+        product-id="405"
+        vendor-id="1116" />
+    <usb-device
+        product-id="388"
+        vendor-id="1116" />
+    <usb-device
+        product-id="304"
+        vendor-id="1116" />
+    <usb-device
+        product-id="393"
+        vendor-id="1116" />
+    <usb-device
+        product-id="399"
+        vendor-id="1116" />
+    <usb-device
+        product-id="305"
+        vendor-id="1116" />
+    <usb-device
+        product-id="306"
+        vendor-id="1116" />
+    <usb-device
+        product-id="307"
+        vendor-id="1116" />
+</resources>
