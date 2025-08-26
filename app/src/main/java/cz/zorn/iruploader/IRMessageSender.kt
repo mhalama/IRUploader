@@ -1,11 +1,11 @@
 package cz.zorn.iruploader
 
 interface IRMessageSender {
-    suspend fun sendMessage(message: String)
+    suspend fun sendMessage(message: String, transmit: suspend (freq: Int, pattern: IntArray) -> Unit)
 }
 
-class IRMessageSenderImpl(private val transmitter: IRTransmitter) : IRMessageSender {
-    override suspend fun sendMessage(message: String) {
+class IRMessageSenderImpl() : IRMessageSender {
+    override suspend fun sendMessage(message: String, transmit: suspend (freq: Int, pattern: IntArray) -> Unit) {
         val pattern = mutableListOf<Int>()
 
         message.forEach { c ->
@@ -23,7 +23,7 @@ class IRMessageSenderImpl(private val transmitter: IRTransmitter) : IRMessageSen
         pattern.add(PROTO_END_MARK)
         pattern.add(PROTO_END_DONE)
 
-        transmitter.transmit(IR_FREQUENCY, pattern.toIntArray())
+        transmit(IR_FREQUENCY, pattern.toIntArray())
     }
 
     companion object {

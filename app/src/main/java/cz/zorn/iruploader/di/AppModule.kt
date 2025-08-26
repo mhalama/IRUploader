@@ -9,7 +9,6 @@ import cz.zorn.iruploader.IRFirmwareSender
 import cz.zorn.iruploader.IRFirmwareSenderImpl
 import cz.zorn.iruploader.IRMessageSender
 import cz.zorn.iruploader.IRMessageSenderImpl
-import cz.zorn.iruploader.IRTransmitter
 import cz.zorn.iruploader.MainActivityVM
 import cz.zorn.iruploader.SocketServer
 import cz.zorn.iruploader.SocketServerImpl
@@ -20,6 +19,8 @@ import cz.zorn.iruploader.db.FirmwareDaoImpl
 import cz.zorn.iruploader.db.FirmwareDatabase
 import cz.zorn.iruploader.db.MessageDao
 import cz.zorn.iruploader.db.MessageDaoImpl
+import cz.zorn.iruploader.irotg.IROTG
+import cz.zorn.iruploader.irotg.IROTGImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,6 +29,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import timber.log.Timber
 
@@ -37,6 +39,8 @@ val appModule = module {
         val driver = AndroidSqliteDriver(FirmwareDatabase.Schema, get(), "firmware.db")
         FirmwareDatabase(driver)
     }
+
+    singleOf(::IROTGImpl) { bind<IROTG>() }
 
     singleOf(::FirmwareDaoImpl) { bind<FirmwareDao>() }
     singleOf(::MessageDaoImpl) { bind<MessageDao>() }
@@ -51,15 +55,22 @@ val appModule = module {
         )
     }
 
-    single<IRTransmitter> {
-        IRTransmitter { freq, pattern ->
-            val irManager =
-                androidContext().getSystemService(Context.CONSUMER_IR_SERVICE) as ConsumerIrManager
-            val pat = pattern.joinToString(" ") { it.toString() }
-            Timber.d("IR (${pattern.size}): $pat")
-            irManager.transmit(freq, pattern)
-        }
-    }
+//    single<IRTransmitter>(named("INNER")) {
+//        IRTransmitter { freq, pattern ->
+//            val irManager =
+//                androidContext().getSystemService(Context.CONSUMER_IR_SERVICE) as ConsumerIrManager
+//            val pat = pattern.joinToString(" ") { it.toString() }
+//            Timber.d("IR (${pattern.size}): $pat")
+//            irManager.transmit(freq, pattern)
+//        }
+//    }
+//
+//    single<IRTransmitter>(named("EXTERNAL")) {
+//        IRTransmitter { freq, pattern ->
+//            val irotg = IROTGImpl(get())
+//            irotg.sendIRDataToExternalDevice(freq, pattern)
+//        }
+//    }
 
     singleOf(::HexLoaderImpl) { bind<HexLoader>() }
     singleOf(::IRFirmwareSenderImpl) { bind<IRFirmwareSender>() }

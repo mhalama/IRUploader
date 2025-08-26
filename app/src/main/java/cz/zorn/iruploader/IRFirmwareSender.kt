@@ -7,17 +7,13 @@ import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
-fun interface IRTransmitter {
-    fun transmit(freq: Int, pattern: IntArray)
-}
-
 data class FlashUploadProgress(val pct: Int)
 
 interface IRFirmwareSender {
-    fun sendFlash(flash: Map<Int, ByteArray>): Flow<FlashUploadProgress>
+    fun sendFlash(flash: Map<Int, ByteArray>, transmit: suspend (freq: Int, pattern: IntArray) -> Unit): Flow<FlashUploadProgress>
 }
 
-class IRFirmwareSenderImpl(private val transmitter: IRTransmitter) : IRFirmwareSender {
+class IRFirmwareSenderImpl() : IRFirmwareSender {
     var nimbble_symbols = arrayOf<Byte>(
         0xd, 0xe, 0x13, 0x15, 0x16, 0x19, 0x1a, 0x1c,
         0x23, 0x25, 0x26, 0x29, 0x2a, 0x2c, 0x32, 0x34
@@ -45,7 +41,7 @@ class IRFirmwareSenderImpl(private val transmitter: IRTransmitter) : IRFirmwareS
         }
     }
 
-    fun calcCrc(crcInput: UByte, data: UByte): UByte {
+    private fun calcCrc(crcInput: UByte, data: UByte): UByte {
         var crc = crcInput xor data
         repeat(8) {
             crc = if ((crc and 0x01u) != 0u.toUByte()) {
@@ -88,7 +84,7 @@ class IRFirmwareSenderImpl(private val transmitter: IRTransmitter) : IRFirmwareS
         return bits.toIntArray()
     }
 
-    override fun sendFlash(flash: Map<Int, ByteArray>) = flow {
+    override fun sendFlash(flash: Map<Int, ByteArray>, transmit: suspend (freq: Int, pattern: IntArray) -> Unit) = flow {
         flash.keys.sorted().forEachIndexed { pageIndex, pageAddress ->
             Timber.d("PAGE $pageIndex: $pageAddress")
 
@@ -135,7 +131,7 @@ class IRFirmwareSenderImpl(private val transmitter: IRTransmitter) : IRFirmwareS
                     output.toByteArray().joinToString(" ") { it.toUByte().toInt().toString(16) }
                 Timber.d("BYTES TO SEND: $bytez")
                 val pattern = encodeByteToIrPattern(output.toByteArray())
-                transmitter.transmit(IR_FREQUENCY, pattern)
+                transmit(IR_FREQUENCY, pattern)
                 delay(300) // pockame az zapise do Flash
             }
         }

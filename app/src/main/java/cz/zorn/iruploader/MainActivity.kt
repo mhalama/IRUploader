@@ -94,47 +94,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    private fun enumerateUsbDevices() {
-        val usbManager = getSystemService(USB_SERVICE) as? UsbManager ?: return
-        usbManager.deviceList.values.forEach { device ->
-            Timber.d("Mam zarizeni: ${device.deviceName} : ${device.deviceClass} : ${device.deviceId} : ${device.productId} : ${device.vendorId}")
-
-            if (usbManager.hasPermission(device)) {
-                connectUsbDevice(device)
-            } else {
-                val permissionIntent = PendingIntent.getBroadcast(
-                    this,
-                    0,
-                    Intent(ACTION_USB_PERMISSION),
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-                val filter = IntentFilter(ACTION_USB_PERMISSION)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    registerReceiver(usbReceiver, filter, RECEIVER_NOT_EXPORTED)
-                } else {
-                    registerReceiver(usbReceiver, filter)
-                }
-                usbManager.requestPermission(device, permissionIntent)
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         getSystemService(CONSUMER_IR_SERVICE)?.let { irManager = it as ConsumerIrManager }
 
-        // Po pripojeni registrovaneho zarizeni
-        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE) as? UsbDevice
-        }
-        device?.let { connectUsbDevice(it) }
+        handleUsbConnectedDevice()
 
-        // zkontrolujeme nove zarizeni - tohle tu pak nebude
         enumerateUsbDevices()
 
         enableEdgeToEdge()
@@ -263,13 +229,64 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private fun connectUsbDevice(device: UsbDevice) {
-        Timber.d("Connecting device $device ...")
-
         val usbManager = getSystemService(USB_SERVICE) as? UsbManager ?: return
-        val connection = usbManager.openDevice(device)
+        if (!usbManager.hasPermission(device)) {
+            Timber.d("Asking for permission to connect device $device ...")
+            val permissionIntent = PendingIntent.getBroadcast(
+                this,
+                0,
+                Intent(ACTION_USB_PERMISSION),
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            val filter = IntentFilter(ACTION_USB_PERMISSION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(usbReceiver, filter, RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(usbReceiver, filter)
+            }
+            usbManager.requestPermission(device, permissionIntent)
+        } else {
+            Timber.d("Connecting device $device ...")
+            model.connectUsbDevice(device)
+        }
+    }
 
-        Timber.d("Connecting device $connection ...")
+    private fun handleUsbConnectedDevice() {
+        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE) as? UsbDevice
+        }
+        device?.let { connectUsbDevice(it) }
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private fun enumerateUsbDevices() {
+        val usbManager = getSystemService(USB_SERVICE) as? UsbManager ?: return
+        usbManager.deviceList.values.forEach { device ->
+            Timber.d("Mam zarizeni: ${device.deviceName} : ${device.deviceClass} : ${device.deviceId} : ${device.productId} : ${device.vendorId}")
+
+            if (usbManager.hasPermission(device)) {
+                connectUsbDevice(device)
+            } else {
+                val permissionIntent = PendingIntent.getBroadcast(
+                    this,
+                    0,
+                    Intent(ACTION_USB_PERMISSION),
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+                val filter = IntentFilter(ACTION_USB_PERMISSION)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(usbReceiver, filter, RECEIVER_NOT_EXPORTED)
+                } else {
+                    registerReceiver(usbReceiver, filter)
+                }
+                usbManager.requestPermission(device, permissionIntent)
+            }
+        }
     }
 
     companion object {

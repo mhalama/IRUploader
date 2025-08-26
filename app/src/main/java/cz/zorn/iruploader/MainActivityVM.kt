@@ -1,5 +1,6 @@
 package cz.zorn.iruploader
 
+import android.hardware.usb.UsbDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.zorn.iruploader.ServerState.*
@@ -58,6 +59,10 @@ class MainActivityVM(
 
     fun deleteMessage(message: Message) {
         viewModelScope.launch { uploaderRepository.deleteMessage(message) }
+    }
+
+    fun connectUsbDevice(device: UsbDevice) {
+        viewModelScope.launch { uploaderRepository.connectUsbDevice(device) }
     }
 
     init {

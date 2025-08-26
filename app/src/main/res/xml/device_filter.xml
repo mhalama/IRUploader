@@ -6,6 +6,10 @@
         vendor-id="12346" />
 
     <!-- IR Blasters -->
+
+    <!-- Moje Cina -->
+    <usb-device product-id="405" vendor-id="1116" />
+
     <usb-device
         product-id="682"
         vendor-id="1116" />
@@ -14,9 +18,6 @@
         vendor-id="1116" />
     <usb-device
         product-id="308"
-        vendor-id="1116" />
-    <usb-device
-        product-id="405"
         vendor-id="1116" />
     <usb-device
         product-id="388"
