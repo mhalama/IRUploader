@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Context.USB_SERVICE
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.ConsumerIrManager
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
@@ -34,9 +34,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.content.ContextCompat.registerReceiver
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
@@ -49,6 +46,7 @@ import cz.zorn.iruploader.ui.component.FirmwareList
 import cz.zorn.iruploader.ui.component.MessageList
 import cz.zorn.iruploader.ui.component.MessageSender
 import cz.zorn.iruploader.ui.component.Overview
+import cz.zorn.iruploader.ui.component.OverviewSimple
 import cz.zorn.iruploader.ui.theme.IRUploaderTheme
 import kotlinx.serialization.Serializable
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -60,6 +58,9 @@ import java.io.InputStream
 import java.io.OutputStream
 
 @Serializable
+data object ScreenOverview : NavKey
+
+@Serializable
 data object ScreenMain : NavKey
 
 @Serializable
@@ -69,11 +70,12 @@ data object ScreenMessage : NavKey
 data object ScreenBootloader : NavKey
 
 sealed class BottomNavItem(val screen: NavKey, val labelResId: Int, val icon: ImageVector) {
-    object Main : BottomNavItem(ScreenMain, R.string.bottom_nav_main, Icons.Filled.Home)
+    object Overview : BottomNavItem(ScreenOverview, R.string.bottom_nav_overview, Icons.Filled.Home)
+    object Firmware : BottomNavItem(ScreenMain, R.string.bottom_nav_main, Icons.Filled.Build)
     object Messages : BottomNavItem(ScreenMessage, R.string.bottom_nav_messages, Icons.Filled.Email)
 }
 
-val bottomNavItems = listOf(BottomNavItem.Main, BottomNavItem.Messages)
+val bottomNavItems = listOf(BottomNavItem.Overview, BottomNavItem.Firmware, BottomNavItem.Messages)
 
 class MainActivity : ComponentActivity() {
     private val model: MainActivityVM by viewModel()
@@ -102,10 +104,12 @@ class MainActivity : ComponentActivity() {
         // Default IR transmitter if available
         getSystemService(CONSUMER_IR_SERVICE)?.let {
             val irManager = it as ConsumerIrManager
-            model.registerIRTransmitter { freq, pattern ->
-                val pat = pattern.joinToString(" ") { it.toString() }
-                Timber.d("IR (${pattern.size}): $pat")
-                irManager.transmit(freq, pattern)
+            if (irManager.hasIrEmitter()) {
+                model.registerIRTransmitter { freq, pattern ->
+                    val pat = pattern.joinToString(" ") { it.toString() }
+                    Timber.d("IR (${pattern.size}): $pat")
+                    irManager.transmit(freq, pattern)
+                }
             }
         }
 
@@ -116,12 +120,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val serverState by model.serverState.collectAsStateWithLifecycle()
+            val hasIrTransmitter by model.hasIRTransmitter.collectAsStateWithLifecycle()
             val firmwares by model.firmwares.collectAsStateWithLifecycle()
             val messages by model.messages.collectAsStateWithLifecycle()
             val uploadingState by model.uploadingState.collectAsStateWithLifecycle()
 
             IRUploaderTheme {
-                val backStack = rememberNavBackStack(ScreenMain) // Default screen is now ScreenMain
+                val backStack = rememberNavBackStack(ScreenOverview) // Default screen is now ScreenMain
                 val currentScreenKey = backStack.lastOrNull()
 
                 Scaffold(
@@ -152,9 +157,16 @@ class MainActivity : ComponentActivity() {
                         backStack = backStack,
                         onBack = { backStack.removeLastOrNull() },
                         entryProvider = entryProvider {
+                            entry<ScreenOverview> {
+                                Column {
+                                    Overview(serverState, hasIrTransmitter, uploadingState) {
+                                        backStack.add(ScreenBootloader)
+                                    }
+                                }
+                            }
                             entry<ScreenMain> {
                                 Column {
-                                    Overview(serverState, uploadingState) {
+                                    OverviewSimple(serverState, hasIrTransmitter, uploadingState) {
                                         backStack.add(ScreenBootloader)
                                     }
                                     FirmwareList(

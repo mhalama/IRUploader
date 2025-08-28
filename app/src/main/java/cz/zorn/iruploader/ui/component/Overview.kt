@@ -23,13 +23,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import cz.zorn.iruploader.IR_TRANSMITTER
 import cz.zorn.iruploader.R
 import cz.zorn.iruploader.ServerState
-import cz.zorn.iruploader.SocketServerState
 import cz.zorn.iruploader.UploadingState
 
 @Composable
-fun Overview(serverState: ServerState, uploadState: UploadingState, shareBootloader: () -> Unit) {
+fun Overview(
+    serverState: ServerState,
+    hasIrTransmitter: IR_TRANSMITTER,
+    uploadState: UploadingState,
+    shareBootloader: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -61,6 +66,10 @@ fun Overview(serverState: ServerState, uploadState: UploadingState, shareBootloa
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            OverviewIRBlaster(hasIrTransmitter)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = stringResource(R.string.app_desc_1),
                 style = MaterialTheme.typography.bodyMedium,
@@ -89,45 +98,119 @@ fun Overview(serverState: ServerState, uploadState: UploadingState, shareBootloa
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            when (serverState) {
-                ServerState.STOPPED -> Text(
-                    stringResource(R.string.server_not_running),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
+            OverviewServerState(serverState)
 
-                is ServerState.READY ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            stringResource(R.string.server_listening_on_port, 12345),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            stringResource(R.string.address, serverState.ip),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-            }
-
-            if (uploadState is UploadingState.UPLOADING) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        stringResource(R.string.loading_firmware),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    LinearProgressIndicator(
-                        progress = { uploadState.progress / 100f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 14.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surface
-                    )
-                }
-            }
+            OverviewUploadState(uploadState)
         }
+    }
+}
+
+
+@Composable
+fun OverviewIRBlaster(hasIrTransmitter: IR_TRANSMITTER) {
+    when (hasIrTransmitter) {
+        IR_TRANSMITTER.NOT_AVAILABLE -> {
+            Text(
+                text = stringResource(R.string.no_ir_transmitter_ready),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        IR_TRANSMITTER.INTERNAL -> {
+            Text(
+                text = stringResource(R.string.internal_ir_transmitter_ready),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        IR_TRANSMITTER.EXTERNAL -> {
+            Text(
+                text = stringResource(R.string.external_ir_transmitter_ready),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun OverviewSimple(
+    serverState: ServerState,
+    hasIrTransmitter: IR_TRANSMITTER,
+    uploadState: UploadingState,
+    shareBootloader: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            OverviewIRBlaster(hasIrTransmitter)
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            OverviewServerState(serverState)
+
+            OverviewUploadState(uploadState)
+        }
+    }
+}
+
+@Composable
+fun OverviewUploadState(uploadState: UploadingState) {
+    if (uploadState is UploadingState.UPLOADING) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                stringResource(R.string.loading_firmware),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            LinearProgressIndicator(
+                progress = { uploadState.progress / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surface
+            )
+        }
+    }
+}
+
+@Composable
+fun OverviewServerState(serverState: ServerState) {
+    when (serverState) {
+        ServerState.STOPPED -> Text(
+            stringResource(R.string.server_not_running),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+
+        is ServerState.READY ->
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    stringResource(R.string.server_listening_on_port, 12345),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    stringResource(R.string.address, serverState.ip),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
     }
 }

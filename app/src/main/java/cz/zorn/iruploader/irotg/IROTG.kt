@@ -1,7 +1,5 @@
 package cz.zorn.iruploader.irotg
 
-// Identifikace pripojeneho zarizeni z analyzy zdrojoveho kodu Gemini. Jiz upraveno, netestovano.
-
 import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbEndpoint

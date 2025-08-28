@@ -12,10 +12,15 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.koin.core.KoinApplication.Companion.init
 
 sealed class UploadingState {
     data class UPLOADING(val firmware: Firmware, val progress: Int) : UploadingState()
     object IDLE : UploadingState()
+}
+
+enum class IR_TRANSMITTER {
+    NOT_AVAILABLE, INTERNAL, EXTERNAL
 }
 
 sealed class ServerState {
@@ -28,6 +33,9 @@ class MainActivityVM(
     private val uploaderRepository: UploaderRepository,
     private val irotg: IROTG,
 ) : ViewModel() {
+    private val _hasIRTransmitter = MutableStateFlow(IR_TRANSMITTER.NOT_AVAILABLE)
+    val hasIRTransmitter = _hasIRTransmitter.asStateFlow()
+
     private val _serverState = MutableStateFlow<ServerState>(STOPPED)
     val serverState = _serverState.asStateFlow()
 
@@ -67,12 +75,17 @@ class MainActivityVM(
     fun connectUsbDevice(device: UsbDevice) {
         viewModelScope.launch {
             irotg.identifyDevice(device)
+            _hasIRTransmitter.value = IR_TRANSMITTER.EXTERNAL
             registerIRTransmitter(irotg::sendIRDataToExternalDevice)
         }
     }
 
-    fun registerIRTransmitter(transmitter: suspend (freq: Int, pattern: IntArray) -> Unit) =
+    fun registerIRTransmitter(transmitter: suspend (freq: Int, pattern: IntArray) -> Unit) {
+        if (_hasIRTransmitter.value == IR_TRANSMITTER.NOT_AVAILABLE) {
+            _hasIRTransmitter.value = IR_TRANSMITTER.INTERNAL
+        }
         uploaderRepository.registerIRTransmitter(transmitter)
+    }
 
     init {
         viewModelScope.launch {

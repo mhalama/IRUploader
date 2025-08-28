@@ -18,4 +18,8 @@
     <string name="unknown">neznámá</string>
     <string name="bottom_nav_main">Firmware</string>
     <string name="bottom_nav_messages">Zprávy</string>
+    <string name="no_ir_transmitter_ready">IR Blaster: Není k dispozici</string>
+    <string name="internal_ir_transmitter_ready">IR Blaster: Interní</string>
+    <string name="external_ir_transmitter_ready">IR Blaster: Externí USB</string>
+    <string name="bottom_nav_overview">Přehled</string>
 </resources>

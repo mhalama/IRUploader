@@ -1,17 +1,14 @@
 package cz.zorn.iruploader
 
-import android.hardware.usb.UsbDevice
 import cz.zorn.iruploader.db.Firmware
 import cz.zorn.iruploader.db.FirmwareDao
 import cz.zorn.iruploader.db.Message
 import cz.zorn.iruploader.db.MessageDao
-import cz.zorn.iruploader.irotg.IROTG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -57,7 +54,7 @@ class UploaderRepositoryImpl(
         val hex = loader.flashPages(flash, 64)
 
         firmwareSender.sendFlash(hex, irTransmitter).collect {
-            val progress = it.pct / 100.0 * (100-firstWaitPct) + firstWaitPct
+            val progress = it.pct / 100.0 * (100 - firstWaitPct) + firstWaitPct
             emit(FlashUploadProgress(progress.toInt()))
         }
     }
