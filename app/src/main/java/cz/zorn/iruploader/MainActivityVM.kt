@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import cz.zorn.iruploader.ServerState.*
 import cz.zorn.iruploader.db.Firmware
 import cz.zorn.iruploader.db.Message
+import cz.zorn.iruploader.irotg.IROTG
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +25,8 @@ sealed class ServerState {
 
 class MainActivityVM(
     private val socketServer: SocketServer,
-    private val uploaderRepository: UploaderRepository
+    private val uploaderRepository: UploaderRepository,
+    private val irotg: IROTG,
 ) : ViewModel() {
     private val _serverState = MutableStateFlow<ServerState>(STOPPED)
     val serverState = _serverState.asStateFlow()
@@ -61,9 +63,16 @@ class MainActivityVM(
         viewModelScope.launch { uploaderRepository.deleteMessage(message) }
     }
 
+    // USB device transmitter is prioritized if available
     fun connectUsbDevice(device: UsbDevice) {
-        viewModelScope.launch { uploaderRepository.connectUsbDevice(device) }
+        viewModelScope.launch {
+            irotg.identifyDevice(device)
+            registerIRTransmitter(irotg::sendIRDataToExternalDevice)
+        }
     }
+
+    fun registerIRTransmitter(transmitter: suspend (freq: Int, pattern: IntArray) -> Unit) =
+        uploaderRepository.registerIRTransmitter(transmitter)
 
     init {
         viewModelScope.launch {

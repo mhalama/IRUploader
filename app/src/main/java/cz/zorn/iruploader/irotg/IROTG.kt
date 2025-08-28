@@ -237,13 +237,6 @@ class IROTGImpl(private val context: Context) : IROTG {
         return chunks
     }
 
-    /**
-     * Kontrolní bajt pro 62B blok:
-     *  - sečte hodnoty (16bit akumulace),
-     *  - vezme ( (sum & 0xF0) | ((sum >> 8) & 0x0F) ),
-     *  - udělá bitReverse a negaci (~),
-     *  - vrátí UByte.
-     */
     private fun checksum63(block: UByteArray, upto: Int): UByte {
         var sum = 0
         for (i in 0 until upto) sum += block[i].toInt() and 0xFF

@@ -17,7 +17,7 @@ class FirmwareDaoImpl(private val db: FirmwareDatabase) : FirmwareDao {
         db.firmwareQueries.getFirmwares().asFlow().mapToList(Dispatchers.IO)
 
     override suspend fun deleteFirmware(fw: Firmware): Unit = withContext(Dispatchers.IO) {
-        db.firmwareQueries.deleteFirmware(fw.id)
+        db.firmwareQueries.deleteFirmware(fw.id).await()
     }
 
     override suspend fun insertFirmware(firmware: Firmware): Unit = withContext(Dispatchers.IO) {
@@ -26,6 +26,6 @@ class FirmwareDaoImpl(private val db: FirmwareDatabase) : FirmwareDao {
             author = firmware.author,
             version = firmware.version,
             hex = firmware.hex
-        )
+        ).await()
     }
 }

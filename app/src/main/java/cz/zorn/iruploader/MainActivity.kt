@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Context.USB_SERVICE
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.ConsumerIrManager
@@ -33,6 +34,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.content.ContextCompat.registerReceiver
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
@@ -74,8 +78,6 @@ val bottomNavItems = listOf(BottomNavItem.Main, BottomNavItem.Messages)
 class MainActivity : ComponentActivity() {
     private val model: MainActivityVM by viewModel()
 
-    private var irManager: ConsumerIrManager? = null
-
     private val usbReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (ACTION_USB_PERMISSION == intent?.action) {
@@ -97,7 +99,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        getSystemService(CONSUMER_IR_SERVICE)?.let { irManager = it as ConsumerIrManager }
+        // Default IR transmitter if available
+        getSystemService(CONSUMER_IR_SERVICE)?.let {
+            val irManager = it as ConsumerIrManager
+            model.registerIRTransmitter { freq, pattern ->
+                val pat = pattern.joinToString(" ") { it.toString() }
+                Timber.d("IR (${pattern.size}): $pat")
+                irManager.transmit(freq, pattern)
+            }
+        }
 
         handleUsbConnectedDevice()
 
@@ -186,6 +196,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        enumerateUsbDevices()
     }
 
     fun shareAssetFile(assetFileName: String) {

@@ -17,10 +17,10 @@ class MessageDaoImpl(private val db: FirmwareDatabase) : MessageDao {
         db.messageQueries.getMessages().asFlow().mapToList(Dispatchers.IO)
 
     override suspend fun deleteMessage(message: Message): Unit = withContext(Dispatchers.IO) {
-        db.messageQueries.deleteMessage(message.content)
+        db.messageQueries.deleteMessage(message.content).await()
     }
 
     override suspend fun upsertMessage(message: Message): Unit = withContext(Dispatchers.IO) {
-        db.messageQueries.upsertMessage(message.content)
+        db.messageQueries.upsertMessage(message.content).await()
     }
 }

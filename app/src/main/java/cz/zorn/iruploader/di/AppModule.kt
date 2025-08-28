@@ -1,7 +1,5 @@
 package cz.zorn.iruploader.di
 
-import android.content.Context
-import android.hardware.ConsumerIrManager
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import cz.zorn.iruploader.HexLoader
 import cz.zorn.iruploader.HexLoaderImpl
@@ -25,13 +23,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import timber.log.Timber
 
 val appModule = module {
     single<FirmwareDatabase> {
@@ -54,23 +49,6 @@ val appModule = module {
             repository = get(),
         )
     }
-
-//    single<IRTransmitter>(named("INNER")) {
-//        IRTransmitter { freq, pattern ->
-//            val irManager =
-//                androidContext().getSystemService(Context.CONSUMER_IR_SERVICE) as ConsumerIrManager
-//            val pat = pattern.joinToString(" ") { it.toString() }
-//            Timber.d("IR (${pattern.size}): $pat")
-//            irManager.transmit(freq, pattern)
-//        }
-//    }
-//
-//    single<IRTransmitter>(named("EXTERNAL")) {
-//        IRTransmitter { freq, pattern ->
-//            val irotg = IROTGImpl(get())
-//            irotg.sendIRDataToExternalDevice(freq, pattern)
-//        }
-//    }
 
     singleOf(::HexLoaderImpl) { bind<HexLoader>() }
     singleOf(::IRFirmwareSenderImpl) { bind<IRFirmwareSender>() }

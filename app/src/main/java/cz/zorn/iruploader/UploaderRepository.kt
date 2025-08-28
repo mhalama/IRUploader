@@ -25,7 +25,7 @@ interface UploaderRepository {
     suspend fun deleteFirmware(fw: Firmware)
     suspend fun deleteMessage(message: Message)
     suspend fun sendMessage(message: Message)
-    suspend fun connectUsbDevice(device: UsbDevice)
+    fun registerIRTransmitter(transmitter: suspend (freq: Int, pattern: IntArray) -> Unit)
 }
 
 class UploaderRepositoryImpl(
@@ -34,22 +34,17 @@ class UploaderRepositoryImpl(
     private val loader: HexLoader,
     private val messageSender: IRMessageSender,
     private val firmwareSender: IRFirmwareSender,
-    private val irotg: IROTG
 ) : UploaderRepository {
+    private lateinit var irTransmitter: suspend (Int, IntArray) -> Unit
+
     override fun getFirmwares() = firmwareDao.getFirmwares()
     override fun getMessages() = messageDao.getMessages()
-
-    suspend fun transmitIR(freq: Int, pattern: IntArray) {
-        // TODO: Implement selection between inner and external IR transmitter
-
-        irotg.sendIRDataToExternalDevice(freq, pattern)
-    }
 
     override fun sendFlash(firmware: Firmware): Flow<FlashUploadProgress> = flow {
         val firstWaitPct = 50
         emit(FlashUploadProgress(0))
 
-        messageSender.sendMessage(MSG_START_BOOTLOADER, ::transmitIR)
+        messageSender.sendMessage(MSG_START_BOOTLOADER, irTransmitter)
 
         for (i in 1..firstWaitPct) {
             delay(DELAY_AFTER_BOOTLOADER_START / firstWaitPct)
@@ -61,7 +56,7 @@ class UploaderRepositoryImpl(
         val flash = loader.loadFlash(inputStream, 512 * 64)
         val hex = loader.flashPages(flash, 64)
 
-        firmwareSender.sendFlash(hex, ::transmitIR).collect {
+        firmwareSender.sendFlash(hex, irTransmitter).collect {
             val progress = it.pct / 100.0 * (100-firstWaitPct) + firstWaitPct
             emit(FlashUploadProgress(progress.toInt()))
         }
@@ -71,12 +66,11 @@ class UploaderRepositoryImpl(
     override suspend fun deleteMessage(message: Message) = messageDao.deleteMessage(message)
     override suspend fun sendMessage(message: Message): Unit = withContext(Dispatchers.IO) {
         messageDao.upsertMessage(message)
-        messageSender.sendMessage(message.content, ::transmitIR)
+        messageSender.sendMessage(message.content, irTransmitter)
     }
 
-    override suspend fun connectUsbDevice(device: UsbDevice) = withContext(Dispatchers.IO) {
-        val deviceIdentify = irotg.identifyDevice(device)
-        Timber.d("Identified device: $deviceIdentify")
+    override fun registerIRTransmitter(transmitter: suspend (Int, IntArray) -> Unit) {
+        irTransmitter = transmitter
     }
 
     override suspend fun saveFirmwareFromInputStream(inputStream: InputStream): Firmware =
