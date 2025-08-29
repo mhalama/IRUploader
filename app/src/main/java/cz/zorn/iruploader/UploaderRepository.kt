@@ -2,6 +2,7 @@ package cz.zorn.iruploader
 
 import cz.zorn.iruploader.db.Firmware
 import cz.zorn.iruploader.db.FirmwareDao
+import cz.zorn.iruploader.db.FirmwareDesc
 import cz.zorn.iruploader.db.Message
 import cz.zorn.iruploader.db.MessageDao
 import kotlinx.coroutines.Dispatchers
@@ -15,11 +16,11 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
 interface UploaderRepository {
-    fun getFirmwares(): Flow<List<Firmware>>
+    fun getFirmwares(): Flow<List<FirmwareDesc>>
     fun getMessages(): Flow<List<Message>>
     suspend fun saveFirmwareFromInputStream(inputStream: InputStream): Firmware
-    fun sendFlash(firmware: Firmware): Flow<FlashUploadProgress>
-    suspend fun deleteFirmware(fw: Firmware)
+    fun sendFlash(firmware: FirmwareDesc): Flow<FlashUploadProgress>
+    suspend fun deleteFirmware(fw: FirmwareDesc)
     suspend fun deleteMessage(message: Message)
     suspend fun sendMessage(message: Message)
     fun registerIRTransmitter(transmitter: suspend (freq: Int, pattern: IntArray) -> Unit)
@@ -32,38 +33,40 @@ class UploaderRepositoryImpl(
     private val messageSender: IRMessageSender,
     private val firmwareSender: IRFirmwareSender,
 ) : UploaderRepository {
-    private lateinit var irTransmitter: suspend (Int, IntArray) -> Unit
+    private var irTransmitter: (suspend (Int, IntArray) -> Unit)? = null
 
     override fun getFirmwares() = firmwareDao.getFirmwares()
     override fun getMessages() = messageDao.getMessages()
 
-    override fun sendFlash(firmware: Firmware): Flow<FlashUploadProgress> = flow {
-        val firstWaitPct = 50
-        emit(FlashUploadProgress(0))
+    override fun sendFlash(firmware: FirmwareDesc): Flow<FlashUploadProgress> = flow {
+        irTransmitter?.let { irTransmitter ->
+            val firstWaitPct = 50
+            emit(FlashUploadProgress(0))
+            messageSender.sendMessage(MSG_START_BOOTLOADER, irTransmitter)
 
-        messageSender.sendMessage(MSG_START_BOOTLOADER, irTransmitter)
+            for (i in 1..firstWaitPct) {
+                delay(DELAY_AFTER_BOOTLOADER_START / firstWaitPct)
+                emit(FlashUploadProgress(i))
+            }
 
-        for (i in 1..firstWaitPct) {
-            delay(DELAY_AFTER_BOOTLOADER_START / firstWaitPct)
-            emit(FlashUploadProgress(i))
-        }
+            val hexStr = firmwareDao.loadFirmware(firmware.id) ?: return@flow
+            val byteArray = hexStr.toByteArray(StandardCharsets.US_ASCII)
+            val inputStream: InputStream = ByteArrayInputStream(byteArray)
+            val flash = loader.loadFlash(inputStream, 512 * 64)
+            val hex = loader.flashPages(flash, 64)
 
-        val byteArray = firmware.hex.toByteArray(StandardCharsets.US_ASCII)
-        val inputStream: InputStream = ByteArrayInputStream(byteArray)
-        val flash = loader.loadFlash(inputStream, 512 * 64)
-        val hex = loader.flashPages(flash, 64)
-
-        firmwareSender.sendFlash(hex, irTransmitter).collect {
-            val progress = it.pct / 100.0 * (100 - firstWaitPct) + firstWaitPct
-            emit(FlashUploadProgress(progress.toInt()))
+            firmwareSender.sendFlash(hex, irTransmitter).collect {
+                val progress = it.pct / 100.0 * (100 - firstWaitPct) + firstWaitPct
+                emit(FlashUploadProgress(progress.toInt()))
+            }
         }
     }
 
-    override suspend fun deleteFirmware(fw: Firmware) = firmwareDao.deleteFirmware(fw)
+    override suspend fun deleteFirmware(fw: FirmwareDesc) = firmwareDao.deleteFirmware(fw.id)
     override suspend fun deleteMessage(message: Message) = messageDao.deleteMessage(message)
     override suspend fun sendMessage(message: Message): Unit = withContext(Dispatchers.IO) {
         messageDao.upsertMessage(message)
-        messageSender.sendMessage(message.content, irTransmitter)
+        irTransmitter?.let { messageSender.sendMessage(message.content, it) }
     }
 
     override fun registerIRTransmitter(transmitter: suspend (Int, IntArray) -> Unit) {

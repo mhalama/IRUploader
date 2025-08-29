@@ -171,6 +171,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                     FirmwareList(
                                         firmwares,
+                                        hasIrTransmitter,
                                         onSendFirmware = { model.sendFirmware(it) },
                                         onDeleteFirmware = { model.deleteFirmware(it) })
                                 }

@@ -7,8 +7,11 @@ CREATE TABLE firmware(
     ts          TEXT
 );
 
-getFirmwares:
-    SELECT * FROM firmware ORDER BY name;
+firmwareDesc:
+    SELECT id, name, author, version, ts FROM firmware ORDER BY name;
+
+firmwareHex:
+    SELECT hex FROM firmware WHERE id=:id;
 
 upsertFirmware:
     INSERT OR REPLACE INTO firmware (name, author, version, hex, ts) VALUES (:name, :author, :version, :hex, strftime('%Y-%m-%d %H:%M:%S', 'now'));

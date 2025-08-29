@@ -16,7 +16,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,15 +24,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cz.zorn.iruploader.IR_TRANSMITTER
 import cz.zorn.iruploader.R
-import cz.zorn.iruploader.UploadingState
-import cz.zorn.iruploader.db.Firmware
+import cz.zorn.iruploader.db.FirmwareDesc
 
 @Composable
 fun FirmwareList(
-    fws: List<Firmware>,
-    onSendFirmware: (Firmware) -> Unit = {},
-    onDeleteFirmware: (Firmware) -> Unit = {},
+    fws: List<FirmwareDesc>,
+    hasIrTransmitter: IR_TRANSMITTER,
+    onSendFirmware: (FirmwareDesc) -> Unit = {},
+    onDeleteFirmware: (FirmwareDesc) -> Unit = {},
 ) {
     if (fws.isEmpty()) {
         Column(
@@ -73,6 +73,7 @@ fun FirmwareList(
             items(fws) { firmware ->
                 FirmwareListItem(
                     firmware = firmware,
+                    hasIrTransmitter = hasIrTransmitter,
                     onUploadClick = { onSendFirmware(firmware) },
                     onDeleteClick = { onDeleteFirmware(firmware) },
                 )
@@ -83,7 +84,8 @@ fun FirmwareList(
 
 @Composable
 fun FirmwareListItem(
-    firmware: Firmware,
+    firmware: FirmwareDesc,
+    hasIrTransmitter: IR_TRANSMITTER,
     onUploadClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
@@ -130,12 +132,14 @@ fun FirmwareListItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                IconButton(onClick = onUploadClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = stringResource(R.string.load_firmware),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                if (hasIrTransmitter != IR_TRANSMITTER.NOT_AVAILABLE) {
+                    IconButton(onClick = onUploadClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(R.string.load_firmware),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
                 IconButton(onClick = onDeleteClick) {
                     Icon(

@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.zorn.iruploader.ServerState.*
 import cz.zorn.iruploader.db.Firmware
+import cz.zorn.iruploader.db.FirmwareDesc
 import cz.zorn.iruploader.db.Message
+import cz.zorn.iruploader.db.asFirmwareDesc
 import cz.zorn.iruploader.irotg.IROTG
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,7 +17,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.KoinApplication.Companion.init
 
 sealed class UploadingState {
-    data class UPLOADING(val firmware: Firmware, val progress: Int) : UploadingState()
+    data class UPLOADING(val firmware: FirmwareDesc, val progress: Int) : UploadingState()
     object IDLE : UploadingState()
 }
 
@@ -46,7 +48,7 @@ class MainActivityVM(
     val messages = uploaderRepository.getMessages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun sendFirmware(fw: Firmware) {
+    fun sendFirmware(fw: FirmwareDesc) {
         viewModelScope.launch {
             uploaderRepository.sendFlash(fw).collect { progress ->
                 uploadingState.value = UploadingState.UPLOADING(fw, progress.pct)
@@ -55,7 +57,7 @@ class MainActivityVM(
         }
     }
 
-    fun deleteFirmware(fw: Firmware) {
+    fun deleteFirmware(fw: FirmwareDesc) {
         viewModelScope.launch { uploaderRepository.deleteFirmware(fw) }
     }
 
@@ -93,7 +95,7 @@ class MainActivityVM(
                 when (it) {
                     SocketServerState.Stopped -> _serverState.value = STOPPED
                     is SocketServerState.Started -> _serverState.value = READY(it.ip)
-                    is SocketServerState.Uploaded -> sendFirmware(it.firmware)
+                    is SocketServerState.Uploaded -> sendFirmware(it.firmware.asFirmwareDesc())
                 }
             }
         }

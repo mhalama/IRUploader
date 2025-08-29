@@ -5,8 +5,7 @@ import timber.log.Timber
 import kotlin.math.roundToInt
 
 /**
- * Třída pro jednoduchou kompresi dat, pravděpodobně pro WAV soubory,
- * založenou na nahrazení dvou nejčastějších párů celých čísel.
+ * Třída pro jednoduchou kompresi dat.
  */
 class WavZip {
 

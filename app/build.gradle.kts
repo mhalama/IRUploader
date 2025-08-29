@@ -16,8 +16,8 @@ android {
         applicationId = "cz.zorn.iruploader"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.06"
+        versionCode = 7
+        versionName = "1.07"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
