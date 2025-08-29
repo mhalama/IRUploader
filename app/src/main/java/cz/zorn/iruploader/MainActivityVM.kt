@@ -4,17 +4,14 @@ import android.hardware.usb.UsbDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.zorn.iruploader.ServerState.*
-import cz.zorn.iruploader.db.Firmware
 import cz.zorn.iruploader.db.FirmwareDesc
 import cz.zorn.iruploader.db.Message
-import cz.zorn.iruploader.db.asFirmwareDesc
 import cz.zorn.iruploader.irotg.IROTG
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.koin.core.KoinApplication.Companion.init
 
 sealed class UploadingState {
     data class UPLOADING(val firmware: FirmwareDesc, val progress: Int) : UploadingState()
@@ -62,7 +59,7 @@ class MainActivityVM(
     }
 
     fun sendMessage(content: String) {
-        viewModelScope.launch { uploaderRepository.sendMessage(Message(content, null)) }
+        viewModelScope.launch { uploaderRepository.sendMessage(Message(content)) }
     }
 
     fun resendMessage(message: Message) {

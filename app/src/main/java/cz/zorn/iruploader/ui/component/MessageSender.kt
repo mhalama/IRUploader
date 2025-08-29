@@ -141,7 +141,7 @@ fun MessageListItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = message.content ?: stringResource(R.string.unknown),
+                    text = message.id,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

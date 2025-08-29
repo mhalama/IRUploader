@@ -1,10 +1,9 @@
 package cz.zorn.iruploader
 
 import cz.zorn.iruploader.db.Firmware
-import cz.zorn.iruploader.db.FirmwareDao
 import cz.zorn.iruploader.db.FirmwareDesc
+import cz.zorn.iruploader.db.IRUploaderDatabase
 import cz.zorn.iruploader.db.Message
-import cz.zorn.iruploader.db.MessageDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -27,16 +26,15 @@ interface UploaderRepository {
 }
 
 class UploaderRepositoryImpl(
-    private val firmwareDao: FirmwareDao,
-    private val messageDao: MessageDao,
+    private val db: IRUploaderDatabase,
     private val loader: HexLoader,
     private val messageSender: IRMessageSender,
     private val firmwareSender: IRFirmwareSender,
 ) : UploaderRepository {
     private var irTransmitter: (suspend (Int, IntArray) -> Unit)? = null
 
-    override fun getFirmwares() = firmwareDao.getFirmwares()
-    override fun getMessages() = messageDao.getMessages()
+    override fun getFirmwares() = db.firmwareDao.firmwareDescs()
+    override fun getMessages() = db.messageDao.messages()
 
     override fun sendFlash(firmware: FirmwareDesc): Flow<FlashUploadProgress> = flow {
         irTransmitter?.let { irTransmitter ->
@@ -49,7 +47,7 @@ class UploaderRepositoryImpl(
                 emit(FlashUploadProgress(i))
             }
 
-            val hexStr = firmwareDao.loadFirmware(firmware.id) ?: return@flow
+            val hexStr = db.firmwareDao.hex(firmware.id) ?: return@flow
             val byteArray = hexStr.toByteArray(StandardCharsets.US_ASCII)
             val inputStream: InputStream = ByteArrayInputStream(byteArray)
             val flash = loader.loadFlash(inputStream, 512 * 64)
@@ -62,11 +60,11 @@ class UploaderRepositoryImpl(
         }
     }
 
-    override suspend fun deleteFirmware(fw: FirmwareDesc) = firmwareDao.deleteFirmware(fw.id)
-    override suspend fun deleteMessage(message: Message) = messageDao.deleteMessage(message)
+    override suspend fun deleteFirmware(fw: FirmwareDesc) = db.firmwareDao.delete(fw.id)
+    override suspend fun deleteMessage(message: Message) = db.messageDao.delete(message.id)
     override suspend fun sendMessage(message: Message): Unit = withContext(Dispatchers.IO) {
-        messageDao.upsertMessage(message)
-        irTransmitter?.let { messageSender.sendMessage(message.content, it) }
+        db.messageDao.insert(message)
+        irTransmitter?.let { messageSender.sendMessage(message.id, it) }
     }
 
     override fun registerIRTransmitter(transmitter: suspend (Int, IntArray) -> Unit) {
@@ -87,9 +85,8 @@ class UploaderRepositoryImpl(
                 author = metaData.author,
                 version = metaData.version,
                 hex = dataBytes.toString(StandardCharsets.US_ASCII),
-                ts = null
             )
-            firmwareDao.insertFirmware(firmware)
+            db.firmwareDao.insert(firmware)
             firmware
         }
 

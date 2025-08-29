@@ -1,11 +1,9 @@
-import org.gradle.declarative.dsl.schema.FqName.Empty.packageName
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrains.kotlin.serialization)
-    id("app.cash.sqldelight") version "2.1.0"
+    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
 }
 
 android {
@@ -43,14 +41,6 @@ android {
     }
 }
 
-sqldelight {
-    databases {
-        create("FirmwareDatabase") {
-            packageName.set("cz.zorn.iruploader.db")
-        }
-    }
-}
-
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -76,9 +66,8 @@ dependencies {
 
     implementation("com.github.jeziellago:compose-markdown:0.5.7")
 
-    implementation("app.cash.sqldelight:android-driver:2.1.0")
-    implementation("app.cash.sqldelight:coroutines-extensions:2.1.0")
-    implementation("app.cash.sqldelight:primitive-adapters:2.1.0")
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

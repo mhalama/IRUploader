@@ -1,6 +1,6 @@
 package cz.zorn.iruploader.di
 
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import androidx.room.Room
 import cz.zorn.iruploader.HexLoader
 import cz.zorn.iruploader.HexLoaderImpl
 import cz.zorn.iruploader.IRFirmwareSender
@@ -12,11 +12,7 @@ import cz.zorn.iruploader.SocketServer
 import cz.zorn.iruploader.SocketServerImpl
 import cz.zorn.iruploader.UploaderRepository
 import cz.zorn.iruploader.UploaderRepositoryImpl
-import cz.zorn.iruploader.db.FirmwareDao
-import cz.zorn.iruploader.db.FirmwareDaoImpl
-import cz.zorn.iruploader.db.FirmwareDatabase
-import cz.zorn.iruploader.db.MessageDao
-import cz.zorn.iruploader.db.MessageDaoImpl
+import cz.zorn.iruploader.db.IRUploaderDatabase
 import cz.zorn.iruploader.irotg.IROTG
 import cz.zorn.iruploader.irotg.IROTGImpl
 import kotlinx.coroutines.CoroutineScope
@@ -29,16 +25,13 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
-    single<FirmwareDatabase> {
-        // androidContext().deleteDatabase("firmware.db")
-        val driver = AndroidSqliteDriver(FirmwareDatabase.Schema, get(), "firmware.db")
-        FirmwareDatabase(driver)
+    single<IRUploaderDatabase> {
+        Room.databaseBuilder(get(), IRUploaderDatabase::class.java, "trade")
+            .fallbackToDestructiveMigration(true)
+            .build()
     }
 
     singleOf(::IROTGImpl) { bind<IROTG>() }
-
-    singleOf(::FirmwareDaoImpl) { bind<FirmwareDao>() }
-    singleOf(::MessageDaoImpl) { bind<MessageDao>() }
 
     single<Job> { SupervisorJob() }
     single<CoroutineScope> { CoroutineScope(Dispatchers.Default + get<Job>()) }

@@ -1,26 +1,20 @@
 package cz.zorn.iruploader.db
 
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import kotlinx.coroutines.Dispatchers
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.withContext
 
-interface MessageDao {
-    fun getMessages(): Flow<List<Message>>
-    suspend fun deleteMessage(message: Message)
-    suspend fun upsertMessage(message: Message)
-}
+@Dao
+abstract class MessageDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun insert(message: Message)
 
-class MessageDaoImpl(private val db: FirmwareDatabase) : MessageDao {
-    override fun getMessages() =
-        db.messageQueries.getMessages().asFlow().mapToList(Dispatchers.IO)
+    @Query("DELETE FROM message WHERE id = :id")
+    abstract suspend fun delete(id: String)
 
-    override suspend fun deleteMessage(message: Message): Unit = withContext(Dispatchers.IO) {
-        db.messageQueries.deleteMessage(message.content).await()
-    }
-
-    override suspend fun upsertMessage(message: Message): Unit = withContext(Dispatchers.IO) {
-        db.messageQueries.upsertMessage(message.content).await()
-    }
+    @Query("select * from message order by ts desc")
+    abstract fun messages(): Flow<List<Message>>
 }
