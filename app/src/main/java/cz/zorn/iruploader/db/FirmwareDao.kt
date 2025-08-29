@@ -18,6 +18,9 @@ abstract class FirmwareDao {
     @Query("select id, name, author, version, ts from firmware order by ts desc")
     abstract fun firmwareDescs(): Flow<List<FirmwareDesc>>
 
+    @Query("select * from firmware where id=:id")
+    abstract suspend fun firmwareById(id: Long): Firmware?
+
     @Query("select hex from firmware where id=:id")
     abstract fun hex(id: Long): String?
 }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -18,10 +19,11 @@ interface UploaderRepository {
     fun getFirmwares(): Flow<List<FirmwareDesc>>
     fun getMessages(): Flow<List<Message>>
     suspend fun saveFirmwareFromInputStream(inputStream: InputStream): Firmware
-    fun sendFlash(firmware: FirmwareDesc): Flow<FlashUploadProgress>
+    fun sendFlash(firmware: Firmware): Flow<FlashUploadProgress>
     suspend fun deleteFirmware(fw: FirmwareDesc)
     suspend fun deleteMessage(message: Message)
     suspend fun sendMessage(message: Message)
+    suspend fun firmwareById(id: Long): Firmware?
     fun registerIRTransmitter(transmitter: suspend (freq: Int, pattern: IntArray) -> Unit)
 }
 
@@ -36,7 +38,7 @@ class UploaderRepositoryImpl(
     override fun getFirmwares() = db.firmwareDao.firmwareDescs()
     override fun getMessages() = db.messageDao.messages()
 
-    override fun sendFlash(firmware: FirmwareDesc): Flow<FlashUploadProgress> = flow {
+    override fun sendFlash(firmware: Firmware): Flow<FlashUploadProgress> = flow {
         irTransmitter?.let { irTransmitter ->
             val firstWaitPct = 50
             emit(FlashUploadProgress(0))
@@ -47,8 +49,7 @@ class UploaderRepositoryImpl(
                 emit(FlashUploadProgress(i))
             }
 
-            val hexStr = db.firmwareDao.hex(firmware.id) ?: return@flow
-            val byteArray = hexStr.toByteArray(StandardCharsets.US_ASCII)
+            val byteArray = firmware.hex.toByteArray(StandardCharsets.US_ASCII)
             val inputStream: InputStream = ByteArrayInputStream(byteArray)
             val flash = loader.loadFlash(inputStream, 512 * 64)
             val hex = loader.flashPages(flash, 64)
@@ -58,13 +59,21 @@ class UploaderRepositoryImpl(
                 emit(FlashUploadProgress(progress.toInt()))
             }
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
-    override suspend fun deleteFirmware(fw: FirmwareDesc) = db.firmwareDao.delete(fw.id)
-    override suspend fun deleteMessage(message: Message) = db.messageDao.delete(message.id)
+    override suspend fun deleteFirmware(fw: FirmwareDesc) =
+        withContext(Dispatchers.IO) { db.firmwareDao.delete(fw.id) }
+
+    override suspend fun deleteMessage(message: Message) =
+        withContext(Dispatchers.IO) { db.messageDao.delete(message.id) }
+
     override suspend fun sendMessage(message: Message): Unit = withContext(Dispatchers.IO) {
         db.messageDao.insert(message)
         irTransmitter?.let { messageSender.sendMessage(message.id, it) }
+    }
+
+    override suspend fun firmwareById(id: Long): Firmware? = withContext(Dispatchers.IO) {
+        db.firmwareDao.firmwareById(id)
     }
 
     override fun registerIRTransmitter(transmitter: suspend (Int, IntArray) -> Unit) {

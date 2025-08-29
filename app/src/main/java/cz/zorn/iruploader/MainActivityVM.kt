@@ -4,6 +4,7 @@ import android.hardware.usb.UsbDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.zorn.iruploader.ServerState.*
+import cz.zorn.iruploader.db.Firmware
 import cz.zorn.iruploader.db.FirmwareDesc
 import cz.zorn.iruploader.db.Message
 import cz.zorn.iruploader.irotg.IROTG
@@ -12,9 +13,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.koin.core.KoinApplication.Companion.init
 
 sealed class UploadingState {
-    data class UPLOADING(val firmware: FirmwareDesc, val progress: Int) : UploadingState()
+    data class UPLOADING(val firmware: Firmware, val progress: Int) : UploadingState()
     object IDLE : UploadingState()
 }
 
@@ -45,7 +47,7 @@ class MainActivityVM(
     val messages = uploaderRepository.getMessages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun sendFirmware(fw: FirmwareDesc) {
+    fun sendFirmware(fw: Firmware) {
         viewModelScope.launch {
             uploaderRepository.sendFlash(fw).collect { progress ->
                 uploadingState.value = UploadingState.UPLOADING(fw, progress.pct)
@@ -86,13 +88,19 @@ class MainActivityVM(
         uploaderRepository.registerIRTransmitter(transmitter)
     }
 
+    fun sendFirmwareByDesc(firmwareDesc: FirmwareDesc) {
+        viewModelScope.launch {
+            uploaderRepository.firmwareById(firmwareDesc.id)?.let { sendFirmware(it) }
+        }
+    }
+
     init {
         viewModelScope.launch {
             socketServer.state.collect {
                 when (it) {
                     SocketServerState.Stopped -> _serverState.value = STOPPED
                     is SocketServerState.Started -> _serverState.value = READY(it.ip)
-                    is SocketServerState.Uploaded -> sendFirmware(it.firmware.asFirmwareDesc())
+                    is SocketServerState.Uploaded -> sendFirmware(it.firmware)
                 }
             }
         }
